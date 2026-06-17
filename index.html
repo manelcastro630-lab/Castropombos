@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestor de Pedigree Profissional - Pombos-Correio</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #34495e;
+            --accent: #2980b9;
+            --light: #ecf0f1;
+            --dark: #1a252f;
+            --macho: #3498db;
+            --femea: #e74c3c;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--light);
+            margin: 0;
+            padding: 20px;
+            color: var(--dark);
+        }
+
+        .container { max-width: 1300px; margin: 0 auto; }
+        h1, h2, h3 { text-align: center; color: var(--primary); }
+
+        .grid-layout {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 900px) {
+            .grid-layout { grid-template-columns: 1fr; }
+        }
+
+        /* Painel Lateral / Formulário */
+        .painel {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            height: fit-content;
+        }
+
+        .form-group { margin-bottom: 12px; }
+        label { font-weight: bold; display: block; margin-bottom: 5px; font-size: 14px; }
+        input, select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        
+        button {
+            background-color: var(--accent); color: white; border: none; padding: 10px;
+            border-radius: 4px; cursor: pointer; font-size: 14px; width: 100%; font-weight: bold; margin-top: 10px;
+        }
+        button:hover { background-color: #2471a3; }
+        .btn-print { background-color: #27ae60; }
+        .btn-print:hover { background-color: #219653; }
+        .btn-danger { background-color: #c0392b; margin-top: 5px; }
+        .btn-danger:hover { background-color: #962d22; }
+
+        /* Lista de Pombos */
+        .lista-pombos { margin-top: 20px; max-height: 200px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; border-radius: 4px; }
+        .pombo-item { display: flex; justify-content: space-between; padding: 5px; border-bottom: 1px solid #eee; font-size: 13px; cursor: pointer; }
+        .pombo-item:hover { background-color: #f1f2f6; }
+
+        /* Árvore de Pedigree */
+        .pedigree-view {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .pedigree-tree {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr); /* Alvo + 3 Gerações */
+            gap: 15px;
+            overflow-x: auto;
+            padding: 10px 0;
+        }
+
+        .generation { display: flex; flex-direction: column; justify-content: space-around; gap: 10px; }
+        .gen-title { text-align: center; font-weight: bold; font-size: 12px; background: var(--secondary); color: white; padding: 4px; border-radius: 4px; }
+
+        /* Cartões dos Pombos */
+        .card {
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            border-left: 6px solid var(--primary);
+            padding: 8px;
+            border-radius: 4px;
+            min-height: 70px;
+            font-size: 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .card.Macho { border-left-color: var(--macho); }
+        .card.Fêmea { border-left-color: var(--femea); }
+        .card .anilha { font-weight: bold; color: var(--dark); }
+        .card .detalhe { color: #7f8c8d; font-size: 11px; }
+
+        /* Classes de Impressão */
+        @media print {
+            body * { visibility: hidden; }
+            .pedigree-view, .pedigree-view * { visibility: visible; }
+            .pedigree-view { position: absolute; left: 0; top: 0; width: 100%; box-shadow: none; }
+            .no-print { display: none !important; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Gestor de Pedigree Columbófilo</h1>
+    
+    <div class="grid-layout">
+        <div class="painel no-print">
+            <h3>Cadastrar / Editar Pombo</h3>
+            <form id="pomboForm">
+                <div class="form-group">
+                    <label>Anilha / Identificação:</label>
+                    <input type="text" id="anilha" required placeholder="Ex: PT-2026-123456">
+                </div>
+                <div class="form-group">
+                    <label>Nome / Linhagem:</label>
+                    <input type="text" id="nome" placeholder="Ex: Neto do Canibal">
+                </div>
+                <div class="form-group">
+                    <label>Sexo:</label>
+                    <select id="sexo" required>
+                        <option value="Macho">Macho (M)</option>
+                        <option value="Fêmea">Fêmea (F)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Características / Cor:</label>
+                    <input type="text" id="notas" placeholder="Ex: Azul, excelente reprodutor">
+                </div>
+                <div class="form-group">
+                    <label>Pai (Se houver):</label>
+                    <select id="paiId"><option value="">-- Selecione o Pai --</option></select>
+                </div>
+                <div class="form-group">
+                    <label>Mãe (Se houver):</label>
+                    <select id="maeId"><option value="">-- Selecione a Mãe --</option></select>
+                </div>
+                <button type="submit">Salvar Pombo</button>
+            </form>
+
+            <h3>Meus Pombos</h3>
+            <div class="lista-pombos" id="listaPombos">
+                </div>
+            <button class="btn-danger" onclick="limparBanco()">Apagar Todos os Dados</button>
+        </div>
+
+        <div class="pedigree-view">
+            <h3 id="pedigreeTitulo">Selecione um pombo na lista para ver o Pedigree</h3>
+            
+            <div class="pedigree-tree">
+                <div class="generation">
+                    <div class="gen-title">Pombo Selecionado</div>
+                    <div class="card" id="c_alvo"></div>
+                </div>
+
+                <div class="generation">
+                    <div class="gen-title">Pais (1ª Gen)</div>
+                    <div class="card" id="c_pai"></div>
+                    <div class="card" id="c_mae"></div>
+                </div>
+
+                <div class="generation">
+                    <div class="gen-title">Avós (2ª Gen)</div>
+                    <div class="card" id="c_avo_pm"></div>
+                    <div class="card" id="c_avo_pf"></div>
+                    <div class="card" id="c_avo_mm"></div>
+                    <div class="card" id="c_avo_mf"></div>
+                </div>
+
+                <div class="generation">
+                    <div class="gen-title">Bisavós (3ª Gen)</div>
+                    <div class="card" id="c_bis_1"></div>
+                    <div class="card" id="c_bis_2"></div>
+                    <div class="card" id="c_bis_3"></div>
+                    <div class="card" id="c_bis_4"></div>
+                    <div class="card" id="c_bis_5"></div>
+                    <div class="card" id="c_bis_6"></div>
+                    <div class="card" id="c_bis_7"></div>
+                    <div class="card" id="c_bis_8"></div>
+                </div>
+            </div>
+
+            <button class="btn-print no-print" onclick="window.print()">Imprimir Este Pedigree</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Inicialização do Banco de Dados local
+    let pombos = JSON.parse(localStorage.getItem('pombos_db')) || [];
+
+    const form = document.getElementById('pomboForm');
+
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const novoPombo = {
+            anilha: document.getElementById('anilha').value.trim(),
+            nome: document.getElementById('nome').value.trim(),
+            sexo: document.getElementById('sexo').value,
+            notas: document.getElementById('notas').value.trim(),
+            pai: document.getElementById('paiId').value,
+            mae: document.getElementById('maeId').value
+        };
+
+        // Verifica se já existe para atualizar, ou adiciona novo
+        const index = pombos.findIndex(p => p.anilha === novoPombo.anilha);
+        if (index > -1) pombos[index] = novoPombo;
+        else pombos.push(novoPombo);
+
+        localStorage.setItem('pombos_db', JSON.stringify(pombos));
+        form.reset();
+        atualizarInterface();
+    });
+
+    function atualizarInterface() {
+        atualizarListasESelects();
+    }
+
+    function atualizarListasESelects() {
+        const listaDiv = document.getElementById('listaPombos');
+        const selectPai = document.getElementById('paiId');
+        const selectMae = document.getElementById('maeId');
+
+        listaDiv.innerHTML = '';
+        selectPai.innerHTML = '<option value="">-- Selecione o Pai --</option>';
+        selectMae.innerHTML = '<option value="">-- Selecione a Mãe --</option>';
+
+        // Ordenar por anilha
+        pombos.sort((a,b) => a.anilha.localeCompare(b.anilha));
+
+        pombos.forEach(pomo => {
+            // Preenche lista lateral
+            let item = document.createElement('div');
+            item.className = 'pombo-item';
+            item.innerHTML = `<span><b>${pomo.anilha}</b> (${pomo.sexo[0]})</span> <span>${pomo.nome}</span>`;
+            item.onclick = () => gerarArvore(pomo.anilha);
+            listaDiv.appendChild(item);
+
+            // Preenche os selects de pais baseados no sexo
+            let opt = document.createElement('option');
+            opt.value = pomo.anilha;
+            opt.textContent = `${pomo.anilha} - ${pomo.nome || 'S/N'}`;
+            
+            if (pomo.sexo === 'Macho') selectPai.appendChild(opt);
+            else selectMae.appendChild(opt);
+        });
+    }
+
+    function buscarPombo(anilha) {
+        return pombos.find(p => p.anilha === anilha) || null;
+    }
+
+    function renderizarCard(idElemento, pombo, parentesco) {
+        const el = document.getElementById(idElemento);
+        el.className = 'card';
+        if (!pombo) {
+            el.innerHTML = `<span class="detalhe" style="color:#b2bec3;">${parentesco}<br>Não cadastrado</span>`;
+            return;
+        }
+        el.classList.add(pombo.sexo);
+        el.innerHTML = `
+            <span class="anilha">${pombo.anilha}</span>
+            <span class="detalhe"><b>${pombo.nome || ''}</b></span>
+            <span class="detalhe">${pombo.notas || ''}</span>
+        `;
+    }
+
+    function gerarArvore(anilhaAlvo) {
+        const alvo = buscarPombo(anilhaAlvo);
+        if (!alvo) return;
+
+        document.getElementById('pedigreeTitulo').textContent = `Pedigree do Pombo: ${alvo.anilha}`;
+
+        // Alvo
+        renderizarCard('c_alvo', alvo, 'Alvo');
+
+        // Pais
+        const pai = buscarPombo(alvo.pai);
+        const mae = buscarPombo(alvo.mae);
+        renderizarCard('c_pai', pai, 'Pai');
+        renderizarCard('c_mae', mae, 'Mãe');
+
+        // Avós
+        const avo_pm = pai ? buscarPombo(pai.pai) : null;
+        const avo_pf = pai ? buscarPombo(pai.mae) : null;
+        const avo_mm = mae ? buscarPombo(mae.pai) : null;
+        const avo_mf = mae ? buscarPombo(mae.mae) : null;
+
+        renderizarCard('c_avo_pm', avo_pm, 'Avô Paterno');
+        renderizarCard('c_avo_pf', avo_pf, 'Avó Paterna');
+        renderizarCard('c_avo_mm', avo_mm, 'Avô Materno');
+        renderizarCard('c_avo_mf', avo_mf, 'Avó Materna');
+
+        // Bisavós (3ª Geração)
+        renderizarCard('c_bis_1', avo_pm ? buscarPombo(avo_pm.pai) : null, 'Bisavô');
+        renderizarCard('c_bis_2', avo_pm ? buscarPombo(avo_pm.mae) : null, 'Bisavó');
+        renderizarCard('c_bis_3', avo_pf ? buscarPombo(avo_pf.pai) : null, 'Bisavô');
+        renderizarCard('c_bis_4', avo_pf ? buscarPombo(avo_pf.mae) : null, 'Bisavó');
+        
+        renderizarCard('c_bis_5', avo_mm ? buscarPombo(avo_mm.pai) : null, 'Bisavô');
+        renderizarCard('c_bis_6', avo_mm ? buscarPombo(avo_mm.mae) : null, 'Bisavó');
+        renderizarCard('c_bis_7', avo_mf ? buscarPombo(avo_mf.pai) : null, 'Bisavô');
+        renderizarCard('c_bis_8', avo_mf ? buscarPombo(avo_mf.mae) : null, 'Bisavó');
+    }
+
+    function limparBanco() {
+        if(confirm("Tem certeza que deseja apagar TODOS os pombos cadastrados?")) {
+            localStorage.removeItem('pombos_db');
+            pombos = [];
+            atualizarInterface();
+            document.getElementById('pedigreeTitulo').textContent = "Selecione um pombo na lista para ver o Pedigree";
+            // Limpa os cards
+            const cards = document.querySelectorAll('.card');
+            cards.forEach(c => c.innerHTML = '');
+        }
+    }
+
+    // Inicializa a tela com dados existentes
+    atualizarInterface();
+</script>
+
+</body>
+</html>
